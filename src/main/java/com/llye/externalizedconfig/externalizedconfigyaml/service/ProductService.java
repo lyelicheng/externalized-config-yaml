@@ -19,28 +19,38 @@ public class ProductService {
     }
 
     public List<ProductDto> getAllProducts(int pageNumber, int pageSize) {
-        Map<String, AppConfig.FeatureFlag> featureFlags = appConfig.getFeatureFlags();
-        Optional<Map.Entry<String, AppConfig.FeatureFlag>> maybeFeatureFlag = featureFlags.entrySet()
-                                                                                          .stream()
-                                                                                          .filter(entry -> entry.getValue()
-                                                                                                                   .isEnabled())
-                                                                                          .findFirst();
+        Optional<Map.Entry<String, AppConfig.FeatureFlag>> maybeFeatureFlag = readConfig();
 
+        List<ProductDto> productDtos = getProducts(maybeFeatureFlag);
+
+        int startIndex = pageNumber * pageSize;
+        int endIndex = Math.min(startIndex + pageSize, productDtos.size());
+        return productDtos.subList(startIndex, endIndex);
+    }
+
+    private Optional<Map.Entry<String, AppConfig.FeatureFlag>> readConfig() {
+        Map<String, AppConfig.FeatureFlag> featureFlags = appConfig.getFeatureFlags();
+        return featureFlags.entrySet()
+                           .stream()
+                           .filter(entry -> entry.getValue()
+                                                 .enabled())
+                           .findFirst();
+    }
+
+    private List<ProductDto> getProducts(Optional<Map.Entry<String, AppConfig.FeatureFlag>> maybeFeatureFlag) {
         List<ProductDto> productDtos = Collections.emptyList();
         if (maybeFeatureFlag.isPresent()) {
             Map.Entry<String, AppConfig.FeatureFlag> featureFlag = maybeFeatureFlag.get();
-            if ("featureA".equals(featureFlag.getKey())) {
+            String featureFlagKey = featureFlag.getKey();
+            if (AppConfig.FEATURE_A.equals(featureFlagKey)) {
                 productDtos = buildFeatureAProducts();
-            } else if ("featureB".equals(featureFlag.getKey())) {
+            } else if (AppConfig.FEATURE_B.equals(featureFlagKey)) {
                 productDtos = buildFeatureBProducts();
             }
             logBetaTestingInfo(featureFlag);
             logRolloutInfo(featureFlag);
         }
-
-        int startIndex = pageNumber * pageSize;
-        int endIndex = Math.min(startIndex + pageSize, productDtos.size());
-        return productDtos.subList(startIndex, endIndex);
+        return productDtos;
     }
 
     private List<ProductDto> buildFeatureAProducts() {
@@ -103,12 +113,12 @@ public class ProductService {
 
     private void logBetaTestingInfo(Map.Entry<String, AppConfig.FeatureFlag> featureFlag) {
         AppConfig.BetaTesting betaTesting = Optional.ofNullable(featureFlag.getValue())
-                                                    .map(AppConfig.FeatureFlag::getBetaTesting)
+                                                    .map(AppConfig.FeatureFlag::betaTesting)
                                                     .orElse(null);
         if (Objects.nonNull(betaTesting)) {
-            boolean isBetaTestingEnabled = betaTesting.isEnabled();
+            boolean isBetaTestingEnabled = betaTesting.enabled();
             if (isBetaTestingEnabled) {
-                String format = String.format("Testers: %s", betaTesting.getTesters());
+                String format = String.format("Testers: %s", betaTesting.testers());
                 LOG.info(format);
             }
         }
@@ -116,10 +126,10 @@ public class ProductService {
 
     private void logRolloutInfo(Map.Entry<String, AppConfig.FeatureFlag> featureFlag) {
         AppConfig.Rollout rollout = Optional.ofNullable(featureFlag.getValue())
-                                            .map(AppConfig.FeatureFlag::getRollout)
+                                            .map(AppConfig.FeatureFlag::rollout)
                                             .orElse(null);
         if (Objects.nonNull(rollout)) {
-            String format = String.format("Rollout strategy: %s, percentage: %d", rollout.getStrategy(), rollout.getPercentage());
+            String format = String.format("Rollout strategy: %s, percentage: %d", rollout.strategy(), rollout.percentage());
             LOG.info(format);
         }
     }

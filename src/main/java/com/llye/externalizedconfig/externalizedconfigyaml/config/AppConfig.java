@@ -11,24 +11,14 @@ import java.util.Map;
 @Component
 @ConfigurationProperties(prefix = "app")
 public class AppConfig {
+    public static final String FEATURE_A = "featureA";
+    public static final String FEATURE_B = "featureB";
+
     Map<String, FeatureFlag> featureFlags;
 
-    @Value
-    public static class FeatureFlag {
-        boolean enabled;
-        BetaTesting betaTesting;
-        Rollout rollout;
-    }
+    public record FeatureFlag(boolean enabled, BetaTesting betaTesting, Rollout rollout) {}
 
-    @Value
-    public static class BetaTesting {
-        boolean enabled;
-        List<String> testers;
-    }
+    public record BetaTesting(boolean enabled, List<String> testers) {}
 
-    @Value
-    public static class Rollout {
-        String strategy;
-        int percentage;
-    }
+    public record Rollout(String strategy, int percentage) {}
 }
