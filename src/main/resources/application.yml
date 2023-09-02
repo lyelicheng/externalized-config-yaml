@@ -1,3 +1,27 @@
 spring:
   application:
     name: externalized-config-yaml
+  profiles:
+    active: ${custom.spring.profiles.active:development}
+
+server:
+  port : ${custom.server.port:8080}
+
+app:
+  featureFlags:
+    featureA:
+      enabled: ${custom.featureA.enabled:false}
+      betaTesting:
+        enabled: ${custom.featureA.betaTesting.enabled:false}
+        testers:
+          - tester.john.doe@gmail.com
+          - tester.victor.doe@gmail.com
+      rollout:
+        strategy: ${custom.featureA.rollout.strategy:gradual}
+        percentage: ${custom.featureA.rollout.percentage:0}
+    featureB:
+      enabled: ${custom.featureB.enabled:false}
+      rollout:
+        strategy: ${custom.featureB.rollout.strategy:gradual}
+        percentage: ${custom.featureB.rollout.percentage:0}
+
