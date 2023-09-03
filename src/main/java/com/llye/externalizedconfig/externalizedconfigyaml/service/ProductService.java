@@ -21,7 +21,8 @@ public class ProductService {
     public List<ProductDto> getAllProducts(int pageNumber, int pageSize) {
         Optional<Map.Entry<String, AppConfig.FeatureFlag>> maybeFeatureFlag = readConfig();
 
-        List<ProductDto> productDtos = getProducts(maybeFeatureFlag);
+        List<ProductDto> productDtos = maybeFeatureFlag.map(this::getProducts)
+                                                       .orElseGet(Collections::emptyList);
 
         int startIndex = pageNumber * pageSize;
         int endIndex = Math.min(startIndex + pageSize, productDtos.size());
@@ -37,19 +38,16 @@ public class ProductService {
                            .findFirst();
     }
 
-    private List<ProductDto> getProducts(Optional<Map.Entry<String, AppConfig.FeatureFlag>> maybeFeatureFlag) {
+    private List<ProductDto> getProducts(Map.Entry<String, AppConfig.FeatureFlag> featureFlag) {
         List<ProductDto> productDtos = Collections.emptyList();
-        if (maybeFeatureFlag.isPresent()) {
-            Map.Entry<String, AppConfig.FeatureFlag> featureFlag = maybeFeatureFlag.get();
-            String featureFlagKey = featureFlag.getKey();
-            if (AppConfig.FEATURE_A.equals(featureFlagKey)) {
-                productDtos = buildFeatureAProducts();
-            } else if (AppConfig.FEATURE_B.equals(featureFlagKey)) {
-                productDtos = buildFeatureBProducts();
-            }
-            logBetaTestingInfo(featureFlag);
-            logRolloutInfo(featureFlag);
+        String featureFlagKey = featureFlag.getKey();
+        if (AppConfig.FEATURE_A.equals(featureFlagKey)) {
+            productDtos = buildFeatureAProducts();
+        } else if (AppConfig.FEATURE_B.equals(featureFlagKey)) {
+            productDtos = buildFeatureBProducts();
         }
+        logBetaTestingInfo(featureFlag);
+        logRolloutInfo(featureFlag);
         return productDtos;
     }
 
